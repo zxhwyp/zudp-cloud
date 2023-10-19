@@ -3,7 +3,7 @@ package com.zudp.common.core.exception.base;
 /**
  * 基础异常
  *
- * @author ruoyi
+ * @author zudp
  */
 public class BaseException extends RuntimeException
 {

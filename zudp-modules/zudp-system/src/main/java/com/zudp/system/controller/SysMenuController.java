@@ -25,7 +25,7 @@ import com.zudp.system.service.ISysMenuService;
 /**
  * 菜单信息
  *
- * @author ruoyi
+ * @author zudp
  */
 @RestController
 @RequestMapping("/menu")

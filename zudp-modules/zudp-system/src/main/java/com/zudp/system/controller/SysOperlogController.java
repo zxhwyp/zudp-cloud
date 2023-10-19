@@ -24,7 +24,7 @@ import com.zudp.system.service.ISysOperLogService;
 /**
  * 操作日志记录
  *
- * @author ruoyi
+ * @author zudp
  */
 @RestController
 @RequestMapping("/operlog")

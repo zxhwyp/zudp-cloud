@@ -6,7 +6,7 @@ import com.zudp.system.domain.SysConfig;
 /**
  * 参数配置 服务层
  *
- * @author ruoyi
+ * @author zudp
  */
 public interface ISysConfigService
 {

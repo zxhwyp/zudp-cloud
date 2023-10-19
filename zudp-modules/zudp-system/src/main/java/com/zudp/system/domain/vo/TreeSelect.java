@@ -10,7 +10,7 @@ import com.zudp.system.domain.SysMenu;
 /**
  * Treeselect树结构实体类
  *
- * @author ruoyi
+ * @author zudp
  */
 public class TreeSelect implements Serializable
 {
