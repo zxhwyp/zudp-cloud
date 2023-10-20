@@ -1,8 +1,8 @@
 {
-  "name": "ruoyi",
+  "name": "ZUDP",
   "version": "3.6.3",
-  "description": "若依管理系统",
-  "author": "若依",
+  "description": "ZUDP管理系统",
+  "author": "ZUDP",
   "license": "MIT",
   "scripts": {
     "dev": "vue-cli-service serve",
