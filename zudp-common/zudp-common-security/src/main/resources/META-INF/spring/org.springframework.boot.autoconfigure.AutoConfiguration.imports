@@ -1,5 +1,5 @@
-WebMvcConfig
-TokenService
-PreAuthorizeAspect
-InnerAuthAspect
-GlobalExceptionHandler
+com.zudp.common.security.config.WebMvcConfig
+com.zudp.common.security.service.TokenService
+com.zudp.common.security.aspect.PreAuthorizeAspect
+com.zudp.common.security.aspect.InnerAuthAspect
+com.zudp.common.security.handler.GlobalExceptionHandler

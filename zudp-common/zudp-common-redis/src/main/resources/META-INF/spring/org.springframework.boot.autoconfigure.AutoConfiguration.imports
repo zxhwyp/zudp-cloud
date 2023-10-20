@@ -1,2 +1,2 @@
-RedisConfig
-RedisService
+com.zudp.common.redis.configure.RedisConfig
+com.zudp.common.redis.service.RedisService
