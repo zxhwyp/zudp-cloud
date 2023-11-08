@@ -19,10 +19,16 @@ import com.zudp.common.log.enums.OperatorType;
 @Documented
 public @interface Log
 {
+
     /**
-     * 模块
+     *  查询的sql id  Mapper的方法签名
      */
-    public String title() default "";
+    public String[] sqlId() default {};
+
+    /**
+     * 操作内容
+     */
+    public String content() default "";
 
     /**
      * 功能

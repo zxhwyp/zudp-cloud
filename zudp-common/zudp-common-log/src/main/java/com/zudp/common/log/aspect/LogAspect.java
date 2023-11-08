@@ -1,17 +1,23 @@
 package com.zudp.common.log.aspect;
 
+import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.alibaba.ttl.TransmittableThreadLocal;
+import com.github.pagehelper.Page;
 import com.zudp.common.log.annotation.Log;
+import com.zudp.common.log.pojo.LogWraper;
 import org.apache.commons.lang3.ArrayUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +53,8 @@ public class LogAspect
     /** 计算操作消耗时间 */
     private static final ThreadLocal<Long> TIME_THREADLOCAL = new NamedThreadLocal<Long>("Cost Time");
 
+    private static final TransmittableThreadLocal<LogWraper> LOG_THREADLOCAL = new TransmittableThreadLocal<>();
+
     @Autowired
     private AsyncLogService asyncLogService;
 
@@ -56,6 +64,11 @@ public class LogAspect
     @Before(value = "@annotation(controllerLog)")
     public void boBefore(JoinPoint joinPoint, Log controllerLog)
     {
+        MethodSignature ms = (MethodSignature)joinPoint.getSignature();
+        LOG_THREADLOCAL.set(LogWraper.builder()
+                .log(controllerLog)
+                .method(ms.getMethod())
+                .build());
         TIME_THREADLOCAL.set(System.currentTimeMillis());
     }
 
@@ -126,6 +139,7 @@ public class LogAspect
         finally
         {
             TIME_THREADLOCAL.remove();
+            LOG_THREADLOCAL.remove();
         }
     }
 
@@ -141,7 +155,7 @@ public class LogAspect
         // 设置action动作
         operLog.setBusinessType(log.businessType().ordinal());
         // 设置标题
-        operLog.setTitle(log.title());
+        operLog.setTitle(log.content());
         // 设置操作人类别
         operLog.setOperatorType(log.operatorType().ordinal());
         // 是否需要保存request，参数和值
@@ -246,5 +260,13 @@ public class LogAspect
         }
         return o instanceof MultipartFile || o instanceof HttpServletRequest || o instanceof HttpServletResponse
                 || o instanceof BindingResult;
+    }
+
+    protected static void setLocalPage(LogWraper log) {
+        LOG_THREADLOCAL.set(log);
+    }
+
+    public static LogWraper getLocalLog() {
+        return Optional.ofNullable(LOG_THREADLOCAL.get()).orElse(LogWraper.builder().build());
     }
 }

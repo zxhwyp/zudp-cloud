@@ -1,2 +1,3 @@
 com.zudp.common.log.service.AsyncLogService
 com.zudp.common.log.aspect.LogAspect
+com.zudp.common.log.interceptor.LogInterceptor

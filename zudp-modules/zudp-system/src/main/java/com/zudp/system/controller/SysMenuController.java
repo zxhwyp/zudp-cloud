@@ -85,7 +85,7 @@ public class SysMenuController extends BaseController
      * 新增菜单
      */
     @RequiresPermissions("system:menu:add")
-    @Log(title = "菜单管理", businessType = BusinessType.INSERT)
+    @Log(content = "菜单管理", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@Validated @RequestBody SysMenu menu)
     {
@@ -105,7 +105,7 @@ public class SysMenuController extends BaseController
      * 修改菜单
      */
     @RequiresPermissions("system:menu:edit")
-    @Log(title = "菜单管理", businessType = BusinessType.UPDATE)
+    @Log(content = "菜单管理", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody SysMenu menu)
     {
@@ -129,7 +129,7 @@ public class SysMenuController extends BaseController
      * 删除菜单
      */
     @RequiresPermissions("system:menu:remove")
-    @Log(title = "菜单管理", businessType = BusinessType.DELETE)
+    @Log(content = "菜单管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{menuId}")
     public AjaxResult remove(@PathVariable("menuId") Long menuId)
     {
