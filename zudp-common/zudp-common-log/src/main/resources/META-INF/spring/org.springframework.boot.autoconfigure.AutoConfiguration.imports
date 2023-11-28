@@ -1,3 +1,5 @@
 com.zudp.common.log.service.AsyncLogService
 com.zudp.common.log.aspect.LogAspect
 com.zudp.common.log.interceptor.LogInterceptor
+com.zudp.common.log.core.LogManager
+com.zudp.common.log.core.JdbcManager

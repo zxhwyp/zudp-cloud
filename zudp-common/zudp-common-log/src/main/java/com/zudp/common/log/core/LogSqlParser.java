@@ -10,12 +10,23 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
 import java.text.DateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 
 public class LogSqlParser {
+
+    static final String SET = "SET";
+    static final String WHERE = "WHERE";
+    static final String UPDATE = "UPDATE";
+    static final String DELETE = "DELETE";
+    static final String JOIN = "JOIN";
+    static final String AS = "AS";
+    static final String FROM = "FROM";
+
 
     public static String logSqlParser(Invocation invocation) {
         MappedStatement ms = (MappedStatement)invocation.getArgs()[0];
@@ -33,8 +44,99 @@ public class LogSqlParser {
         return sql;
     }
 
+    public static SqlFragment updateSqlParser(String sql) {
+        String sqlCopy = sql.toUpperCase();
+        if (sqlCopy.startsWith(DELETE)) {
+            return deleteSqlParser(sql);
+        }
+        SqlFragment sqlFragment = new SqlFragment();
+        sqlFragment.act = UPDATE;
+        int setIndex = sqlCopy.indexOf(SET);
+        String tableFra = sql.substring(UPDATE.length(), setIndex);
+        sqlFragment.tables = tableFra;
+        sqlFragment.tableEntities = parserTables(tableFra);
 
-        // 进行？的替换
+        int whereIndex = sqlCopy.indexOf(WHERE);
+        sqlFragment.condition = sql.substring(whereIndex + WHERE.length());
+        sqlFragment.params = parserParams(sql.substring(setIndex + SET.length(), whereIndex));
+        return sqlFragment;
+    }
+
+    public static SqlFragment deleteSqlParser(String sql) {
+        String sqlCopy = sql.toUpperCase();
+        if (sqlCopy.startsWith(UPDATE)) {
+            return updateSqlParser(sql);
+        }
+        SqlFragment sqlFragment = new SqlFragment();
+        sqlFragment.act = DELETE;
+        int whereIndex = sqlCopy.indexOf(WHERE);
+        String tableFra = sql.substring(FROM.length(), whereIndex);
+        sqlFragment.tables = tableFra;
+        sqlFragment.tableEntities = parserTables(tableFra);
+        sqlFragment.condition = sql.substring(whereIndex + WHERE.length());
+        return sqlFragment;
+    }
+
+    public static List<SqlFragment.Table> parserTables(String fragment) {
+        //首先移除收尾空格
+        String origin = fragment.trim();
+        //更新语句有单表更新和多表更新两种，
+        // 先考虑单表更新以及update t1, t2这种形式
+        // 还有update t1 join t2 on t1.xx = t2.yy
+        String originCopy = origin.toUpperCase();
+        if (originCopy.contains(JOIN)) {
+            new Throwable("日志解析：暂不支持的sql语句解析");
+        }
+        List<String> tables = Arrays.stream(origin.split(",")).filter((e) -> e != null && !e.isEmpty()).collect(Collectors.toList());
+        List<SqlFragment.Table> results = tables.stream().map((e) -> e.trim())
+                .map((e) -> {
+                    //此处分两种情况  as指定别名 或者 空格指定别名
+                    String eCopy = e.toUpperCase();
+                    List<String> tableStrs =  Arrays.asList();
+                    if (eCopy.contains(AS)) {
+                        tableStrs = sqlSplit(e, AS);
+                    }
+                    tableStrs = Arrays.asList(e.split(" "));
+                    SqlFragment.Table table = new SqlFragment.Table();
+                    if (tableStrs.size() > 0) {
+                        table.name = tableStrs.get(0);
+                        table.alias = tableStrs.get(0);
+                    }
+                    if (tableStrs.size() > 1) {
+                        table.alias = tableStrs.get(1);
+                    }
+                    return table;
+                }).collect(Collectors.toList());
+        return results;
+    }
+
+    public static List<String> parserParams(String fragment) {
+        String origin = fragment.trim();
+        List<String> args = Arrays.stream(origin.split(","))
+                .map((e) -> e.trim())
+                .map((e) -> {
+                    String[] params = e.split("=");
+                    if (params.length > 0) {
+                        return params[0];
+                    }else {
+                        return "";
+                    }
+                })
+                .filter((e) -> e.length() > 0).collect(Collectors.toList());
+        return args;
+    }
+
+    //因为sql关键词可以大写也可以小写，统一方法分隔
+    public static List<String> sqlSplit(String value ,String split) {
+        if (value.contains(split.toUpperCase())) {
+            return Arrays.asList(value.split(split.toUpperCase()));
+        }
+        return Arrays.asList(value.split(split.toLowerCase()));
+    }
+
+
+
+    // 进行？的替换
     private static String showSql(Configuration configuration, BoundSql boundSql) {
         // 获取参数
         Object parameterObject = boundSql.getParameterObject();
@@ -90,4 +192,6 @@ public class LogSqlParser {
         }
         return value;
     }
+
+
 }

@@ -19,6 +19,8 @@ import java.util.*;
 @Component
 public class LogInterceptor implements Interceptor {
 
+    @Resource
+    LogManager logManager;
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         try {
@@ -30,8 +32,7 @@ public class LogInterceptor implements Interceptor {
             }
             Boolean isMatch = Arrays.asList(ids).contains(ms.getId());
             if (isMatch) {
-                LogManager.logHandle(invocation);
-                log.info("--isMatch--{}", "匹配成功");
+                logManager.logHandle(invocation);
             }
         } catch (Exception e) {
             e.printStackTrace();

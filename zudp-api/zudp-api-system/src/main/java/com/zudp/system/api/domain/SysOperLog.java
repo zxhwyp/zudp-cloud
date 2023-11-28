@@ -21,7 +21,7 @@ public class SysOperLog extends BaseEntity
 
     /** 操作模块 */
     @Excel(name = "操作模块")
-    private String title;
+    private String content;
 
     /** 业务类型（0其它 1新增 2修改 3删除） */
     @Excel(name = "业务类型", readConverterExp = "0=其它,1=新增,2=修改,3=删除,4=授权,5=导出,6=导入,7=强退,8=生成代码,9=清空数据")
@@ -93,14 +93,14 @@ public class SysOperLog extends BaseEntity
         this.operId = operId;
     }
 
-    public String getTitle()
+    public String getContent()
     {
-        return title;
+        return content;
     }
 
-    public void setTitle(String title)
+    public void setContent(String content)
     {
-        this.title = title;
+        this.content = content;
     }
 
     public Integer getBusinessType()

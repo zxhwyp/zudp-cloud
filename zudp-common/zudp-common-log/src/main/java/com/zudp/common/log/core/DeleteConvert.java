@@ -5,8 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class DeleteConvert implements SqlConvert{
     @Override
-    public String doSqlConvert(String sql) {
-        log.info("-------删除转换语句{}", sql);
-        return "删除";
+    public SqlFragment doSqlConvert(String sql) {
+        SqlFragment fragment = LogSqlParser.deleteSqlParser(sql);
+        if (fragment.act.equals("UPDATE")) {
+            fragment.selectSql = String.format("SELECT %s FROM %s WHERE %s", fragment.getSqlParams(), fragment.tables, fragment.condition);
+        }
+        fragment.selectSql =  String.format("SELECT * FROM %s WHERE %s", fragment.tables, fragment.condition);
+        return fragment;
     }
 }

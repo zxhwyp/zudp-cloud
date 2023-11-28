@@ -26,6 +26,11 @@ public @interface Log
     public String[] sqlId() default {};
 
     /**
+     *  表对象的名字字段，如用户的name字段
+     */
+    public String nameKey() default "";
+
+    /**
      * 操作内容
      */
     public String content() default "";

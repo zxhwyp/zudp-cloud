@@ -1,16 +1,20 @@
 package com.zudp.common.log.aspect;
 
-import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
-import com.github.pagehelper.Page;
 import com.zudp.common.log.annotation.Log;
+import com.zudp.common.log.core.JdbcManager;
+import com.zudp.common.log.core.enhance.MultTableLogParser;
+import com.zudp.common.log.core.enhance.SingleTableLogParser;
+import com.zudp.common.log.core.enhance.TableLogParser;
 import com.zudp.common.log.pojo.LogWraper;
+import com.zudp.common.log.pojo.TableColumn;
 import org.apache.commons.lang3.ArrayUtils;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
@@ -57,6 +61,9 @@ public class LogAspect
 
     @Autowired
     private AsyncLogService asyncLogService;
+
+    @Autowired
+    JdbcManager jdbcManager;
 
     /**
      * 处理请求前执行
@@ -116,6 +123,8 @@ public class LogAspect
             {
                 operLog.setStatus(BusinessStatus.FAIL.ordinal());
                 operLog.setErrorMsg(StringUtils.substring(e.getMessage(), 0, 2000));
+            } else {
+                packageContent(joinPoint, controllerLog, operLog);
             }
             // 设置方法名称
             String className = joinPoint.getTarget().getClass().getName();
@@ -155,7 +164,7 @@ public class LogAspect
         // 设置action动作
         operLog.setBusinessType(log.businessType().ordinal());
         // 设置标题
-        operLog.setTitle(log.content());
+        operLog.setContent(log.content());
         // 设置操作人类别
         operLog.setOperatorType(log.operatorType().ordinal());
         // 是否需要保存request，参数和值
@@ -269,4 +278,25 @@ public class LogAspect
     public static LogWraper getLocalLog() {
         return Optional.ofNullable(LOG_THREADLOCAL.get()).orElse(LogWraper.builder().build());
     }
+
+    private void packageContent(final JoinPoint joinPoint, Log controllerLog, SysOperLog operLog) {
+        String selectSql = LogAspect.getLocalLog().getSelectSql();
+        List<Map<String, Object>> result = jdbcManager.queryWithSql(selectSql);
+        LogAspect.getLocalLog().setNewValues(result);
+        Map<String, List<TableColumn>> meta = jdbcManager.queryWithTableMetaData(LogAspect.getLocalLog().getTables());
+        LogAspect.getLocalLog().setMetaData(meta);
+        TableLogParser logParser = new SingleTableLogParser();
+        if (LogAspect.getLocalLog().getTables().size() > 1) {
+            logParser = new MultTableLogParser();
+        }
+        StringBuilder str = new StringBuilder();
+        str.append(operLog.getContent());
+        String ctn = logParser.parser(LogAspect.getLocalLog());
+        if (StringUtils.isNotEmpty(ctn)) {
+            str.append(String.format(":%s", ctn));
+        }
+        operLog.setContent(str.toString());
+    }
+
+
 }
