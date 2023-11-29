@@ -2,6 +2,7 @@ package com.zudp.common.log.core;
 
 import com.zudp.common.log.pojo.TableColumn;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
@@ -24,7 +25,7 @@ public class JdbcManager {
         String base = "SELECT column_name, column_comment FROM\tinformation_schema.COLUMNS WHERE table_schema = (SELECT DATABASE()) AND table_name = '%s' ORDER BY ordinal_position";
         tables.stream().forEach((e) -> {
            String sql = String.format(base, e);
-            List<TableColumn> columns = jdbcTemplate.queryForList(sql, TableColumn.class);
+            List<TableColumn> columns = jdbcTemplate.query(sql, new BeanPropertyRowMapper(TableColumn.class));
             tableColumnMap.put(e, columns);
         });
         return tableColumnMap;

@@ -220,7 +220,8 @@ public class SysUserController extends BaseController
      * 修改用户
      */
     @RequiresPermissions("system:user:edit")
-    @Log(sqlId = "com.zudp.system.mapper.SysUserMapper.updateUser", content = "修改用户", nameKey = "nickName",businessType = BusinessType.UPDATE)
+    @Log(sqlId = "com.zudp.system.mapper.SysUserMapper.updateUser", content = "修改用户",
+            nameKey = "nick_name", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody SysUser user)
     {

@@ -10,9 +10,9 @@ import javax.servlet.http.HttpServletResponse;
 import com.alibaba.ttl.TransmittableThreadLocal;
 import com.zudp.common.log.annotation.Log;
 import com.zudp.common.log.core.JdbcManager;
-import com.zudp.common.log.core.enhance.MultTableLogParser;
-import com.zudp.common.log.core.enhance.SingleTableLogParser;
-import com.zudp.common.log.core.enhance.TableLogParser;
+import com.zudp.common.log.core.parser.MultTableLogParser;
+import com.zudp.common.log.core.parser.SingleTableLogParser;
+import com.zudp.common.log.core.parser.TableLogParser;
 import com.zudp.common.log.pojo.LogWraper;
 import com.zudp.common.log.pojo.TableColumn;
 import org.apache.commons.lang3.ArrayUtils;
@@ -119,13 +119,6 @@ public class LogAspect
                 operLog.setOperName(username);
             }
 
-            if (e != null)
-            {
-                operLog.setStatus(BusinessStatus.FAIL.ordinal());
-                operLog.setErrorMsg(StringUtils.substring(e.getMessage(), 0, 2000));
-            } else {
-                packageContent(joinPoint, controllerLog, operLog);
-            }
             // 设置方法名称
             String className = joinPoint.getTarget().getClass().getName();
             String methodName = joinPoint.getSignature().getName();
@@ -136,6 +129,13 @@ public class LogAspect
             getControllerMethodDescription(joinPoint, controllerLog, operLog, jsonResult);
             // 设置消耗时间
             operLog.setCostTime(System.currentTimeMillis() - TIME_THREADLOCAL.get());
+            if (e != null)
+            {
+                operLog.setStatus(BusinessStatus.FAIL.ordinal());
+                operLog.setErrorMsg(StringUtils.substring(e.getMessage(), 0, 2000));
+            } else {
+                packageContent(joinPoint, controllerLog, operLog);
+            }
             // 保存数据库
             asyncLogService.saveSysLog(operLog);
         }
@@ -290,7 +290,11 @@ public class LogAspect
             logParser = new MultTableLogParser();
         }
         StringBuilder str = new StringBuilder();
-        str.append(operLog.getContent());
+        if (StringUtils.isNotEmpty(operLog.getContent())) {
+            str.append(operLog.getContent());
+        }else {
+            str.append("内容");
+        }
         String ctn = logParser.parser(LogAspect.getLocalLog());
         if (StringUtils.isNotEmpty(ctn)) {
             str.append(String.format(":%s", ctn));

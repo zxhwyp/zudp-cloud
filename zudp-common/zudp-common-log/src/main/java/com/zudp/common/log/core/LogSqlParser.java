@@ -19,15 +19,6 @@ import java.util.stream.Collectors;
 
 public class LogSqlParser {
 
-    static final String SET = "SET";
-    static final String WHERE = "WHERE";
-    static final String UPDATE = "UPDATE";
-    static final String DELETE = "DELETE";
-    static final String JOIN = "JOIN";
-    static final String AS = "AS";
-    static final String FROM = "FROM";
-
-
     public static String logSqlParser(Invocation invocation) {
         MappedStatement ms = (MappedStatement)invocation.getArgs()[0];
         Object parameter = null;
@@ -46,34 +37,34 @@ public class LogSqlParser {
 
     public static SqlFragment updateSqlParser(String sql) {
         String sqlCopy = sql.toUpperCase();
-        if (sqlCopy.startsWith(DELETE)) {
+        if (sqlCopy.startsWith(LogConfig.DELETE)) {
             return deleteSqlParser(sql);
         }
         SqlFragment sqlFragment = new SqlFragment();
-        sqlFragment.act = UPDATE;
-        int setIndex = sqlCopy.indexOf(SET);
-        String tableFra = sql.substring(UPDATE.length(), setIndex);
+        sqlFragment.act = LogConfig.UPDATE;
+        int setIndex = sqlCopy.indexOf(LogConfig.SET);
+        String tableFra = sql.substring(LogConfig.UPDATE.length(), setIndex);
         sqlFragment.tables = tableFra;
         sqlFragment.tableEntities = parserTables(tableFra);
 
-        int whereIndex = sqlCopy.indexOf(WHERE);
-        sqlFragment.condition = sql.substring(whereIndex + WHERE.length());
-        sqlFragment.params = parserParams(sql.substring(setIndex + SET.length(), whereIndex));
+        int whereIndex = sqlCopy.indexOf(LogConfig.WHERE);
+        sqlFragment.condition = sql.substring(whereIndex + LogConfig.WHERE.length());
+        sqlFragment.params = parserParams(sql.substring(setIndex + LogConfig.SET.length(), whereIndex));
         return sqlFragment;
     }
 
     public static SqlFragment deleteSqlParser(String sql) {
         String sqlCopy = sql.toUpperCase();
-        if (sqlCopy.startsWith(UPDATE)) {
+        if (sqlCopy.startsWith(LogConfig.UPDATE)) {
             return updateSqlParser(sql);
         }
         SqlFragment sqlFragment = new SqlFragment();
-        sqlFragment.act = DELETE;
-        int whereIndex = sqlCopy.indexOf(WHERE);
-        String tableFra = sql.substring(FROM.length(), whereIndex);
+        sqlFragment.act = LogConfig.DELETE;
+        int whereIndex = sqlCopy.indexOf(LogConfig.WHERE);
+        String tableFra = sql.substring(LogConfig.FROM.length(), whereIndex);
         sqlFragment.tables = tableFra;
         sqlFragment.tableEntities = parserTables(tableFra);
-        sqlFragment.condition = sql.substring(whereIndex + WHERE.length());
+        sqlFragment.condition = sql.substring(whereIndex + LogConfig.WHERE.length());
         return sqlFragment;
     }
 
@@ -84,7 +75,7 @@ public class LogSqlParser {
         // 先考虑单表更新以及update t1, t2这种形式
         // 还有update t1 join t2 on t1.xx = t2.yy
         String originCopy = origin.toUpperCase();
-        if (originCopy.contains(JOIN)) {
+        if (originCopy.contains(LogConfig.JOIN)) {
             new Throwable("日志解析：暂不支持的sql语句解析");
         }
         List<String> tables = Arrays.stream(origin.split(",")).filter((e) -> e != null && !e.isEmpty()).collect(Collectors.toList());
@@ -93,8 +84,8 @@ public class LogSqlParser {
                     //此处分两种情况  as指定别名 或者 空格指定别名
                     String eCopy = e.toUpperCase();
                     List<String> tableStrs =  Arrays.asList();
-                    if (eCopy.contains(AS)) {
-                        tableStrs = sqlSplit(e, AS);
+                    if (eCopy.contains(LogConfig.AS)) {
+                        tableStrs = sqlSplit(e, LogConfig.AS);
                     }
                     tableStrs = Arrays.asList(e.split(" "));
                     SqlFragment.Table table = new SqlFragment.Table();
