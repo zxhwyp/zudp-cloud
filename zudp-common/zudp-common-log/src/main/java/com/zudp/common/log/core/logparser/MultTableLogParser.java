@@ -1,4 +1,4 @@
-package com.zudp.common.log.core.parser;
+package com.zudp.common.log.core.logparser;
 
 import com.zudp.common.log.pojo.LogWraper;
 

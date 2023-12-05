@@ -195,7 +195,7 @@ public class SysUserController extends BaseController
      * 新增用户
      */
     @RequiresPermissions("system:user:add")
-    @Log(content = "用户管理", businessType = BusinessType.INSERT)
+    @Log(content = "新增用户", nameKey = "nickName", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@Validated @RequestBody SysUser user)
     {
@@ -221,7 +221,7 @@ public class SysUserController extends BaseController
      */
     @RequiresPermissions("system:user:edit")
     @Log(sqlId = "com.zudp.system.mapper.SysUserMapper.updateUser", content = "修改用户",
-            nameKey = "nick_name", businessType = BusinessType.UPDATE)
+            nameKey = "nickName", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody SysUser user)
     {
@@ -247,7 +247,7 @@ public class SysUserController extends BaseController
      * 删除用户
      */
     @RequiresPermissions("system:user:remove")
-    @Log(sqlId = "com.zudp.system.mapper.SysUserMapper.deleteUserByIds", content = "用户管理", businessType = BusinessType.DELETE)
+    @Log(sqlId = "com.zudp.system.mapper.SysUserMapper.deleteUserByIds", nameKey = "nickName", content = "删除用户", businessType = BusinessType.DELETE)
     @DeleteMapping("/{userIds}")
     public AjaxResult remove(@PathVariable Long[] userIds)
     {

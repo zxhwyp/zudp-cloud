@@ -3,6 +3,7 @@ package com.zudp.common.log.interceptor;
 import com.zudp.common.log.annotation.Log;
 import com.zudp.common.log.aspect.LogAspect;
 import com.zudp.common.log.core.LogManager;
+import com.zudp.common.log.enums.BusinessType;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -31,14 +32,19 @@ public class LogInterceptor implements Interceptor {
                 ids = Optional.ofNullable(logEntity.sqlId()).orElse(ids);
             }
             Boolean isMatch = Arrays.asList(ids).contains(ms.getId());
-            if (isMatch) {
-                logManager.logHandle(invocation);
+            Log controllerLog = LogAspect.getLocalLog().getLog();
+            if (controllerLog != null) {
+                BusinessType type = controllerLog.businessType();
+                if (isMatch || type == BusinessType.INSERT) {
+                    logManager.logHandle(invocation);
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            // 执行完上面的任务后，不改变原有的sql执行过程
+            return invocation.proceed();
         }
-        // 执行完上面的任务后，不改变原有的sql执行过程
-        return invocation.proceed();
     }
 
 }

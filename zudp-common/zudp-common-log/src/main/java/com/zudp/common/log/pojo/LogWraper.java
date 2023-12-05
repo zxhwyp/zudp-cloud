@@ -16,14 +16,17 @@ import java.util.Map;
 @Builder
 public class LogWraper {
 
-   //指令：update、delete等
-   String act;
-
    private Log log;
 
    private Method method;
 
    private String selectSql;
+
+   //字段
+   List<String> params;
+
+   //值
+   List<List<String>> values;
 
    //涉及到的表
    private List<String> tables;

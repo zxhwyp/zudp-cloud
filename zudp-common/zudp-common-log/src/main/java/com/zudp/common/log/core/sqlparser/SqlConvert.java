@@ -1,4 +1,4 @@
-package com.zudp.common.log.core;
+package com.zudp.common.log.core.sqlparser;
 
 public interface SqlConvert {
 

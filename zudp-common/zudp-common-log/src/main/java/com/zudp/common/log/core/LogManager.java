@@ -1,13 +1,12 @@
 package com.zudp.common.log.core;
 
 import com.zudp.common.log.aspect.LogAspect;
+import com.zudp.common.log.core.sqlparser.*;
+import com.zudp.common.log.enums.BusinessType;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.plugin.Invocation;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -24,26 +23,31 @@ public class LogManager {
     public void logHandle(Invocation invocation) {
         //先解析出原sql
         String sql = LogSqlParser.logSqlParser(invocation);
-        //按sql类型转换成select语句
-        MappedStatement ms = (MappedStatement)invocation.getArgs()[0];
-        SqlCommandType commandType = ms.getSqlCommandType();
+        BusinessType type = LogAspect.getLocalLog().getLog().businessType();
         SqlConvert sqlConvert = null;
-        switch (commandType) {
+        switch (type) {
             case UPDATE:
                 sqlConvert = new UpdateConvert();
                 break;
             case DELETE:
                 sqlConvert = new DeleteConvert();
                 break;
+            case INSERT:
+                sqlConvert = new InsertConvert();
+                break;
         }
         if (sqlConvert == null) {
             return;
         }
         SqlFragment fragment = sqlConvert.doSqlConvert(sql);
-        List<Map<String, Object>> result = jdbcManager.queryWithSql(fragment.selectSql);
-        LogAspect.getLocalLog().setAct(fragment.getAct());
-        LogAspect.getLocalLog().setSelectSql(fragment.selectSql);
-        LogAspect.getLocalLog().setOldValues(result);
-        LogAspect.getLocalLog().setTables(fragment.tableEntities.stream().map((e) -> e.name).collect(Collectors.toList()));
+        if (type == BusinessType.INSERT) {
+            LogAspect.getLocalLog().setParams(fragment.getParams());
+            LogAspect.getLocalLog().setValues(fragment.getValues());
+        }else {
+            List<Map<String, Object>> result = jdbcManager.queryWithSql(fragment.getSelectSql());
+            LogAspect.getLocalLog().setSelectSql(fragment.getSelectSql());
+            LogAspect.getLocalLog().setOldValues(result);
+            LogAspect.getLocalLog().setTables(fragment.getTableEntities().stream().map((e) -> e.getName()).collect(Collectors.toList()));
+        }
     }
 }

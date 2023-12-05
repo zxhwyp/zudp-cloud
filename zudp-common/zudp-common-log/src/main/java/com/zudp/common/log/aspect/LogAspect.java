@@ -7,12 +7,14 @@ import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import cn.hutool.core.util.StrUtil;
 import com.alibaba.ttl.TransmittableThreadLocal;
 import com.zudp.common.log.annotation.Log;
 import com.zudp.common.log.core.JdbcManager;
-import com.zudp.common.log.core.parser.MultTableLogParser;
-import com.zudp.common.log.core.parser.SingleTableLogParser;
-import com.zudp.common.log.core.parser.TableLogParser;
+import com.zudp.common.log.core.logparser.MultTableLogParser;
+import com.zudp.common.log.core.logparser.SingleTableLogParser;
+import com.zudp.common.log.core.logparser.TableLogParser;
+import com.zudp.common.log.enums.BusinessType;
 import com.zudp.common.log.pojo.LogWraper;
 import com.zudp.common.log.pojo.TableColumn;
 import org.apache.commons.lang3.ArrayUtils;
@@ -134,7 +136,12 @@ public class LogAspect
                 operLog.setStatus(BusinessStatus.FAIL.ordinal());
                 operLog.setErrorMsg(StringUtils.substring(e.getMessage(), 0, 2000));
             } else {
-                packageContent(joinPoint, controllerLog, operLog);
+                //添加详细日志记录
+                try {
+                    packageContent(joinPoint, controllerLog, operLog);
+                } catch (Throwable th) {
+                    th.printStackTrace();
+                }
             }
             // 保存数据库
             asyncLogService.saveSysLog(operLog);
@@ -280,14 +287,11 @@ public class LogAspect
     }
 
     private void packageContent(final JoinPoint joinPoint, Log controllerLog, SysOperLog operLog) {
-        String selectSql = LogAspect.getLocalLog().getSelectSql();
-        List<Map<String, Object>> result = jdbcManager.queryWithSql(selectSql);
-        LogAspect.getLocalLog().setNewValues(result);
-        Map<String, List<TableColumn>> meta = jdbcManager.queryWithTableMetaData(LogAspect.getLocalLog().getTables());
-        LogAspect.getLocalLog().setMetaData(meta);
-        TableLogParser logParser = new SingleTableLogParser();
-        if (LogAspect.getLocalLog().getTables().size() > 1) {
-            logParser = new MultTableLogParser();
+        String content = "";
+        if (controllerLog.businessType() == BusinessType.INSERT) {
+            content = packageInsertContent(joinPoint, controllerLog);
+        }else {
+            content = packageOtherContent(controllerLog);
         }
         StringBuilder str = new StringBuilder();
         if (StringUtils.isNotEmpty(operLog.getContent())) {
@@ -295,12 +299,52 @@ public class LogAspect
         }else {
             str.append("内容");
         }
-        String ctn = logParser.parser(LogAspect.getLocalLog());
-        if (StringUtils.isNotEmpty(ctn)) {
-            str.append(String.format(":%s", ctn));
+        if (StringUtils.isNotEmpty(content)) {
+            str.append(String.format("：%s", content));
         }
         operLog.setContent(str.toString());
     }
+    private String packageInsertContent(final JoinPoint joinPoint, Log controllerLog) {
+        String nameKey = controllerLog.nameKey();
+        //字段
+        List<String> params = LogAspect.getLocalLog().getParams();
+        //值
+        List<List<String>> values = LogAspect.getLocalLog().getValues();
+        int index = params.indexOf(nameKey);
+        //有可能用户传过来的是驼峰转成下划线试下
+        if (index == -1) {
+            index = params.indexOf(StrUtil.toUnderlineCase(nameKey));
+        }
+        StringBuilder content = new StringBuilder("");
+        if (index == -1) {
+            return content.toString();
+        }
+        final int finalIndex = index;
+        values.stream().forEach((e) -> {
+            int i = values.indexOf(e);
+            if (i == 0) {
+                content.append(e.get(finalIndex));
+            }else {
+                content.append(String.format(",%s", e.get(finalIndex)));
+            }
+        });
+        return content.toString();
+    }
 
+    private String packageOtherContent(Log controllerLog) {
+        if (controllerLog.businessType() == BusinessType.UPDATE) {
+            String selectSql = LogAspect.getLocalLog().getSelectSql();
+            List<Map<String, Object>> result = jdbcManager.queryWithSql(selectSql);
+            LogAspect.getLocalLog().setNewValues(result);
+        }
+        Map<String, List<TableColumn>> meta = jdbcManager.queryWithTableMetaData(LogAspect.getLocalLog().getTables());
+        LogAspect.getLocalLog().setMetaData(meta);
+        TableLogParser logParser = new SingleTableLogParser();
+        if (LogAspect.getLocalLog().getTables().size() > 1) {
+            logParser = new MultTableLogParser();
+        }
+        String ctn = logParser.parser(LogAspect.getLocalLog());
+        return ctn;
+    }
 
 }

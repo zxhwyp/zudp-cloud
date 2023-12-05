@@ -1,4 +1,4 @@
-package com.zudp.common.log.core;
+package com.zudp.common.log.core.sqlparser;
 
 
 import lombok.AllArgsConstructor;
@@ -12,8 +12,6 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SqlFragment {
-    //指令：update、delete等
-    String act;
 
     //查询条件
     String condition;
@@ -21,9 +19,12 @@ public class SqlFragment {
     //字段
     List<String> params;
 
+    //值
+    List<List<String>> values;
+
     String selectSql;
 
-    String  getSqlParams()  {
+    public String  getSqlParams()  {
         String result = params.stream().collect(Collectors.joining(","));
          return result;
     }
@@ -34,7 +35,7 @@ public class SqlFragment {
     List<Table> tableEntities;
 
     @Data
-    static class Table {
+    public static class Table {
         String name;
         String alias;
     }

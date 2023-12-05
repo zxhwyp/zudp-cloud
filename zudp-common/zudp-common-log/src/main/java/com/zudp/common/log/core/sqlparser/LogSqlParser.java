@@ -1,5 +1,7 @@
-package com.zudp.common.log.core;
+package com.zudp.common.log.core.sqlparser;
 
+import com.zudp.common.log.core.LogConfig;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -10,13 +12,12 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.type.TypeHandlerRegistry;
 
 import java.text.DateFormat;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class LogSqlParser {
 
     public static String logSqlParser(Invocation invocation) {
@@ -41,7 +42,6 @@ public class LogSqlParser {
             return deleteSqlParser(sql);
         }
         SqlFragment sqlFragment = new SqlFragment();
-        sqlFragment.act = LogConfig.UPDATE;
         int setIndex = sqlCopy.indexOf(LogConfig.SET);
         String tableFra = sql.substring(LogConfig.UPDATE.length(), setIndex);
         sqlFragment.tables = tableFra;
@@ -59,12 +59,41 @@ public class LogSqlParser {
             return updateSqlParser(sql);
         }
         SqlFragment sqlFragment = new SqlFragment();
-        sqlFragment.act = LogConfig.DELETE;
         int whereIndex = sqlCopy.indexOf(LogConfig.WHERE);
-        String tableFra = sql.substring(LogConfig.FROM.length(), whereIndex);
+        int fromIndex = sqlCopy.indexOf(LogConfig.FROM);
+
+        String tableFra = sql.substring(fromIndex + LogConfig.FROM.length(), whereIndex);
         sqlFragment.tables = tableFra;
         sqlFragment.tableEntities = parserTables(tableFra);
         sqlFragment.condition = sql.substring(whereIndex + LogConfig.WHERE.length());
+        return sqlFragment;
+    }
+
+    public static SqlFragment insertSqlParser(String sql) {
+        String sqlCopy = sql.toUpperCase();
+
+        SqlFragment sqlFragment = new SqlFragment();
+        int intoIndex = sqlCopy.indexOf(LogConfig.INTO);
+        int lbfIndex = sqlCopy.indexOf("(");
+        int rbfIndex = sqlCopy.indexOf(")");
+
+        String tableFra = sql.substring(intoIndex + LogConfig.INTO.length(), lbfIndex);
+        sqlFragment.tables = tableFra.trim();
+        String paramStr = sql.substring(lbfIndex + 1, rbfIndex);
+        sqlFragment.params = Arrays.asList(paramStr.split(",")).stream().map((e) -> e.trim()).collect(Collectors.toList());
+
+        int valuesIndex = sqlCopy.indexOf(LogConfig.VALUES);
+        String subSql = sql.substring(valuesIndex + LogConfig.VALUES.length());
+        List<List<String>> values = new ArrayList<>();
+        Pattern pattern = Pattern.compile("\\(([^)]+[^(]+)\\)");
+        Matcher matcher = pattern.matcher(subSql);
+        while (matcher.find()) {
+            String val = matcher.group(1);
+            String temp = val.replaceAll("'", "");
+            List<String> temps = Arrays.asList(temp.split(",")).stream().map((e) -> e.trim()).collect(Collectors.toList());
+            values.add(temps);
+        }
+        sqlFragment.setValues(values);
         return sqlFragment;
     }
 
@@ -86,8 +115,9 @@ public class LogSqlParser {
                     List<String> tableStrs =  Arrays.asList();
                     if (eCopy.contains(LogConfig.AS)) {
                         tableStrs = sqlSplit(e, LogConfig.AS);
+                    }else {
+                        tableStrs = Arrays.asList(e.split(" "));
                     }
-                    tableStrs = Arrays.asList(e.split(" "));
                     SqlFragment.Table table = new SqlFragment.Table();
                     if (tableStrs.size() > 0) {
                         table.name = tableStrs.get(0);

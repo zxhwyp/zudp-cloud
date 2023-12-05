@@ -1,6 +1,8 @@
-package com.zudp.common.log.core.parser;
+package com.zudp.common.log.core.logparser;
+import cn.hutool.core.util.StrUtil;
 import com.zudp.common.log.annotation.Log;
 import com.zudp.common.log.core.LogConfig;
+import com.zudp.common.log.enums.BusinessType;
 import com.zudp.common.log.pojo.ChangeRecord;
 import com.zudp.common.log.pojo.LogWraper;
 import com.zudp.common.log.pojo.TableColumn;
@@ -9,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -22,7 +25,8 @@ public class SingleTableLogParser implements TableLogParser {
         }
         List<TableColumn> tableColumns = (List<TableColumn>) tables[0];
         Map columnsMap = tableColumns.stream().collect(Collectors.toMap(TableColumn::getColumnName, TableColumn::getColumnComment));
-        if (logWraper.getAct().equals(LogConfig.DELETE)) {
+        Log logN = logWraper.getLog();
+        if (logN.businessType() == BusinessType.DELETE) {
             return deleteParser(logWraper, columnsMap);
         }
         return updateParser(logWraper, columnsMap);
@@ -39,6 +43,10 @@ public class SingleTableLogParser implements TableLogParser {
             ChangeRecord changeRecord = new ChangeRecord();
             String nameKey = logN.nameKey();
             Object nameObValue = updateValue.get(nameKey);
+            if (nameObValue == null) {
+                //用下划线试试
+                nameObValue = updateValue.get(StrUtil.toUnderlineCase(nameKey));
+            }
             String nameValue = "";
             if (nameObValue != null) {
                 nameValue = nameObValue.toString();
@@ -47,13 +55,13 @@ public class SingleTableLogParser implements TableLogParser {
             List<ChangeRecord.ColumnRecord> records = new ArrayList<>();
             e.forEach((key, oldValue) -> {
                 Object newValue = updateValue.get(key);
-                String newValueStr = newValue.toString();
-                String oldValueStr = oldValue.toString();
+                String newValueStr = Optional.ofNullable(newValue).orElse("空").toString();
+                String oldValueStr = Optional.ofNullable(oldValue).orElse("空").toString();
                 if (newValueStr.equals(oldValueStr) == false && LogConfig.fieldFilter(key)) {
                     records.add(ChangeRecord.ColumnRecord.builder()
-                            .oldValue(oldValue.toString())
+                            .oldValue(oldValueStr)
                             .comment(columnsMap.get(key).toString())
-                            .newValue(newValue.toString())
+                            .newValue(newValueStr)
                             .param(key)
                             .build());
                 }
@@ -67,15 +75,33 @@ public class SingleTableLogParser implements TableLogParser {
             if (index != 0) {
                 contentStr.append("\n");
             }
-            contentStr.append(e.getNameValue() + "，");
+            contentStr.append(e.getNameValue() + "->");
             e.getRecords().stream().forEach((filed) -> {
-                contentStr.append(String.format("%s：由【%s】改成【%s】;", filed.getComment(), filed.getOldValue(), filed.getNewValue()));
+                contentStr.append(String.format("%s：由【%s】改成【%s】,", filed.getComment(), filed.getOldValue(), filed.getNewValue()));
             });
         });
         return contentStr.toString();
     }
     private String deleteParser(LogWraper logWraper, Map columnsMap) {
-
-        return null;
+        List<Map<String, Object>> oldValues = logWraper.getOldValues();
+        Log logN = logWraper.getLog();
+        StringBuilder contentStr = new StringBuilder();
+        oldValues.stream().forEach((e) -> {
+            int index = oldValues.indexOf(e);
+            if (index != 0) {
+                contentStr.append(",");
+            }
+            String nameKey = logN.nameKey();
+            Object nameObValue = e.get(nameKey);
+            if (nameObValue == null) {
+                //用下划线试试
+                nameObValue = e.get(StrUtil.toUnderlineCase(nameKey));
+            }
+            if (nameObValue != null) {
+                String nameValue = nameObValue.toString();
+                contentStr.append(nameValue);
+            }
+        });
+        return contentStr.toString();
     }
 }
